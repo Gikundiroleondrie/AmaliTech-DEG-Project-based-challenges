@@ -9,7 +9,6 @@ const KEY_PATTERN = /^[A-Za-z0-9._:-]+$/;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** JSON.stringify with sorted keys so {"a":1,"b":2} and {"b":2,"a":1} hash identically. */
 function canonicalize(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
   if (value && typeof value === 'object') {
@@ -66,7 +65,6 @@ function validatePayment(body) {
   return null;
 }
 
-/** The "payment processor" - simulated with a delay. */
 async function chargeCustomer({ amount, currency }, delayMs) {
   await sleep(delayMs);
   return {
@@ -101,13 +99,11 @@ function createServer({ delayMs = 2000, ttlMs = 24 * 60 * 60 * 1000 } = {}) {
 
     const fingerprint = fingerprintOf(body);
 
-    // Loop: if the request we were waiting on failed, the key is freed and we try again.
     for (;;) {
       const existing = store.get(key);
 
       if (!existing) {
-        // ---- First time we see this key: we own the processing. ----
-        const entry = store.begin(key, fingerprint); // synchronous => race-free
+        const entry = store.begin(key, fingerprint);
         try {
           const response = await chargeCustomer(body, delayMs);
           store.complete(key, entry, response);
@@ -118,21 +114,18 @@ function createServer({ delayMs = 2000, ttlMs = 24 * 60 * 60 * 1000 } = {}) {
         }
       }
 
-      // ---- Key already known. ----
       if (existing.fingerprint !== fingerprint) {
         return send(res, 422, { error: 'Idempotency key already used for a different request body.' });
       }
 
       if (existing.status === 'processing') {
-        // ---- Bonus: in-flight duplicate. Block until the first request finishes. ----
         try {
           await existing.promise;
         } catch {
-          continue; // original failed and released the key; start over
+          continue;
         }
       }
 
-      // ---- Replay the saved response. ----
       const saved = existing.response || store.get(key)?.response;
       if (!saved) continue;
       return send(res, saved.statusCode, saved.body, { 'X-Cache-Hit': 'true' });

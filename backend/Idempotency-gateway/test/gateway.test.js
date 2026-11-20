@@ -36,12 +36,12 @@ test('US2: duplicate returns identical response instantly with X-Cache-Hit', asy
   const firstBody = await first.json();
 
   const start = Date.now();
-  const second = await pay('k-dup', { currency: 'GHS', amount: 100 }); // key order differs on purpose
+  const second = await pay('k-dup', { currency: 'GHS', amount: 100 });
   const secondBody = await second.json();
 
   assert.ok(Date.now() - start < DELAY / 2, 'replay must not re-run the delay');
   assert.equal(second.status, first.status);
-  assert.deepEqual(secondBody, firstBody); // same transactionId => not charged twice
+  assert.deepEqual(secondBody, firstBody);
   assert.equal(second.headers.get('x-cache-hit'), 'true');
 });
 
@@ -57,7 +57,7 @@ test('Bonus: in-flight duplicate waits and gets the first result (no 409, no dou
   const body = { amount: 42, currency: 'USD' };
   const start = Date.now();
   const a = pay('k-race', body);
-  await new Promise((r) => setTimeout(r, 50)); // B arrives while A is mid-processing
+  await new Promise((r) => setTimeout(r, 50));
   const b = pay('k-race', body);
   const [ra, rb] = await Promise.all([a, b]);
   const [ja, jb] = [await ra.json(), await rb.json()];
@@ -89,8 +89,8 @@ test('Validation: missing key, bad key, bad body', async () => {
 test("Developer's Choice: keys expire after the TTL and can be reused", async () => {
   const r1 = await pay('k-ttl', { amount: 10, currency: 'GHS' });
   const j1 = await r1.json();
-  await new Promise((r) => setTimeout(r, 1100)); // TTL is 1000ms in tests
-  const r2 = await pay('k-ttl', { amount: 999, currency: 'GHS' }); // different body is fine after expiry
+  await new Promise((r) => setTimeout(r, 1100));
+  const r2 = await pay('k-ttl', { amount: 999, currency: 'GHS' });
   const j2 = await r2.json();
   assert.equal(r2.status, 201);
   assert.notEqual(j1.transactionId, j2.transactionId);
