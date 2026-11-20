@@ -83,8 +83,8 @@ flowchart TD
 **Requirements:** Node.js 18 or newer. No `npm install` is needed (no dependencies).
 
 ```bash
-git clone <your-fork-url>
-cd idempotency-gateway
+git clone https://github.com/Gikundiroleondrie/AmaliTech-DEG-Project-based-challenges.git
+cd AmaliTech-DEG-Project-based-challenges/backend/Idempotency-gateway
 npm start          # starts on http://localhost:3000
 npm test           # runs the automated test suite
 ```
